@@ -24,7 +24,7 @@ SCROLL_THRESH = 200
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 21
+TILE_TYPES = 22
 MAX_LEVELS = 3
 screen_scroll = 0
 bg_scroll = 0
@@ -264,7 +264,6 @@ class Soldier(pygame.sprite.Sprite):
                 if time_since_enter >= 5000:
                     self.plant = True
                     self.plant_text = 'DEVICE IS ACTIVE'
-                    self.vel_y = -25
 
         # check for collision with exit
         level_complete = False
@@ -430,6 +429,9 @@ class World():
                     elif tile == 20:  # create exit
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
+                    elif tile == 21:
+                        decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
+                        decoration_group.add(decoration)
 
         return player, health_bar
 
@@ -496,6 +498,31 @@ class ItemBox(pygame.sprite.Sprite):
                 player.grenades += 3
             # delete the item box
             self.kill()
+
+
+class DefuseBox(pygame.sprite.Sprite):
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('img/tile/21.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        # scroll
+        self.rect.x += screen_scroll
+        # check if the player has picked up the box
+        if pygame.sprite.collide_rect(self, player):
+            # check what kind of box it was
+            # if self.item_type == 'Health':
+            #     player.health += 25
+            #     if player.health > player.max_health:
+            #         player.health = player.max_health
+            # elif self.item_type == 'Ammo':
+            #     player.ammo += 15
+            # elif self.item_type == 'Grenade':
+            #     player.grenades += 3
+            # delete the item box
+            player.plant = False
 
 
 class HealthBar():
@@ -830,6 +857,7 @@ while run:
                 player.jump = True
                 jump_fx.play()
             if event.key == pygame.K_e:
+                print(f'center: {player.rect.center} x: {player.rect.centerx} y: {player.rect.centery}')
                 bomb_start_time = pygame.time.get_ticks()
                 print(bomb_start_time)
             if event.key == pygame.K_ESCAPE:
