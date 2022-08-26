@@ -33,6 +33,7 @@ start_game = False
 start_intro = False
 
 bomb_start_time = None
+defuser_start = None
 
 # define player action variables
 moving_left = False
@@ -107,8 +108,8 @@ def draw_bg():
     width = sky_img.get_width()
     for x in range(5):
         screen.blit(sky_img, ((x * width) - bg_scroll * 0.5, 0))
-        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
-        screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 450))
+        screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 200))
         screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
 
 
@@ -122,6 +123,7 @@ def reset_level():
     decoration_group.empty()
     water_group.empty()
     exit_group.empty()
+    defuse_group.empty()
 
     # create empty tile list
     data = []
@@ -194,7 +196,8 @@ class Soldier(pygame.sprite.Sprite):
         screen_scroll = 0
         dx = 0
         dy = 0
-
+        dx_snap = None
+        dy_snap = None
         # assign movement variables if moving left or right
         if moving_left:
             dx = -self.speed
@@ -261,9 +264,20 @@ class Soldier(pygame.sprite.Sprite):
                 time_since_enter = pygame.time.get_ticks() - bomb_start_time
                 message = 'Milliseconds since enter: ' + str(time_since_enter)
                 # screen.blit(FONT.render(message, True, TEXT_COLOR), (20, 20))
+                if time_since_enter >= 1000 <= 1500:
+                    dx_snap = dx
+                    dy_snap = dy
                 if time_since_enter >= 5000:
-                    self.plant = True
-                    self.plant_text = 'DEVICE IS ACTIVE'
+                    if dx != dx_snap or dy != dy_snap:
+                        self.plant = False
+                    else:
+                        self.plant = True
+                        self.plant_text = 'DEVICE IS ACTIVE'
+
+        if defuser_start and pygame.sprite.spritecollide(self, defuse_group, False):
+            if self.plant_text == 'DEVICE IS ACTIVE':
+                self.plant = False
+                self.plant_text = 'DEVICE HAS BEEN DEFUSED'
 
         # check for collision with exit
         level_complete = False
@@ -430,8 +444,8 @@ class World():
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
                     elif tile == 21:
-                        decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
-                        decoration_group.add(decoration)
+                        defuser = DefuseBox(img, x * TILE_SIZE, y * TILE_SIZE)
+                        defuse_group.add(defuser)
 
         return player, health_bar
 
@@ -501,29 +515,16 @@ class ItemBox(pygame.sprite.Sprite):
 
 
 class DefuseBox(pygame.sprite.Sprite):
-    def __init__(self, item_type, x, y):
+
+    def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('img/tile/21.png').convert_alpha()
+        self.image = img
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
     def update(self):
         # scroll
         self.rect.x += screen_scroll
-        # check if the player has picked up the box
-        if pygame.sprite.collide_rect(self, player):
-            # check what kind of box it was
-            # if self.item_type == 'Health':
-            #     player.health += 25
-            #     if player.health > player.max_health:
-            #         player.health = player.max_health
-            # elif self.item_type == 'Ammo':
-            #     player.ammo += 15
-            # elif self.item_type == 'Grenade':
-            #     player.grenades += 3
-            # delete the item box
-            player.plant = False
-
 
 class HealthBar():
     def __init__(self, x, y, health, max_health):
@@ -705,6 +706,7 @@ explosion_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
 decoration_group = pygame.sprite.Group()
 water_group = pygame.sprite.Group()
+defuse_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 
 # create empty tile list
@@ -768,6 +770,7 @@ while run:
         decoration_group.update()
         water_group.update()
         exit_group.update()
+        defuse_group.update()
         bullet_group.draw(screen)
         grenade_group.draw(screen)
         explosion_group.draw(screen)
@@ -775,6 +778,7 @@ while run:
         decoration_group.draw(screen)
         water_group.draw(screen)
         exit_group.draw(screen)
+        defuse_group.draw(screen)
 
         # show intro
         if start_intro == True:
@@ -787,6 +791,9 @@ while run:
             # shoot bullets
             if shoot:
                 player.shoot()
+                # start reload
+                # if player.ammo < 1:
+                #     player.ammo += 25
             # throw grenades
             elif grenade and grenade_thrown == False and player.grenades > 0:
                 grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), \
@@ -860,6 +867,9 @@ while run:
                 print(f'center: {player.rect.center} x: {player.rect.centerx} y: {player.rect.centery}')
                 bomb_start_time = pygame.time.get_ticks()
                 print(bomb_start_time)
+            if event.key == pygame.K_x:
+                defuser_start = pygame.time.get_ticks()
+                print(defuser_start)
             if event.key == pygame.K_ESCAPE:
                 run = False
 
