@@ -625,7 +625,7 @@ class Grenade(pygame.sprite.Sprite):
                 dx = self.direction * self.speed
             # check for collision in the y direction
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                self.speed = 0
+                self.speed *= 0.5
                 # check if below the ground, i.e. thrown up
                 if self.vel_y < 0:
                     self.vel_y = 0
